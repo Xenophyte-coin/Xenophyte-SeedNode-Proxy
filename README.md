@@ -19,9 +19,11 @@
 
 ° Test token network, by using this example **IPV6 link** to your browser:
 
-**Ask blocktemplate**: http://[2001:41d0:404:200::256c]:18003/TOKEN-ASK-BLOCKTEMPLATE (Copy/past necessary)
+[Copy/Past necessary to test IPV6 Links]
 
-**Ask public remote node**: http://[2001:41d0:404:200::256c]:18003/TOKEN-ASK-REMOTE-NODE (Copy/past necessary)
+**Ask blocktemplate**: **http://[2001:41d0:404:200::256c]:18003/TOKEN-ASK-BLOCKTEMPLATE** 
+
+**Ask public remote node**: **http://[2001:41d0:404:200::256c]:18003/TOKEN-ASK-REMOTE-NODE** 
 
 ## Contact:
 

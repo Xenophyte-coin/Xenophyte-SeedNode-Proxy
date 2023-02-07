@@ -1,4 +1,5 @@
-﻿using Xenophyte_SeedNode_Proxy.TCP.Enum;
+﻿using System.Collections.Generic;
+using Xenophyte_SeedNode_Proxy.TCP.Enum;
 using Xenophyte_SeedNode_Proxy.TCP.Server;
 
 namespace Xenophyte_SeedNode_Proxy.Automation
@@ -8,23 +9,27 @@ namespace Xenophyte_SeedNode_Proxy.Automation
         /// <summary>
         /// List of server listener objects.
         /// </summary>
-        private ProxyServerListener _proxyServerOnlineNetwork;
-        private ProxyServerListener _proxyServerRemoteNetwork;
-        private ProxyServerListener _proxyServerTokenNetwork;
+        private List<ProxyServerListener> _proxyServerNetwork;
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        /// <param name="proxyServerOnlineNetwork"></param>
-        /// <param name="proxyServerRemoteNetwork"></param>
-        /// <param name="proxyServerTokenNetwork"></param>
-        public AutomationSystem(ProxyServerListener proxyServerOnlineNetwork, 
-                                ProxyServerListener proxyServerRemoteNetwork,
-                                ProxyServerListener proxyServerTokenNetwork)
+        /// <param name="proxyServerNetwork"></param>
+        public AutomationSystem(List<ProxyServerListener> proxyServerNetwork)
         {
-            _proxyServerOnlineNetwork = proxyServerOnlineNetwork;
-            _proxyServerRemoteNetwork = proxyServerRemoteNetwork;
-            _proxyServerTokenNetwork = proxyServerTokenNetwork;
+            _proxyServerNetwork = proxyServerNetwork;
+        }
+
+        /// <summary>
+        /// Auto clean proxy server.
+        /// </summary>
+        public void AutoCleanProxyServer()
+        {
+            for (int i = 0; i < _proxyServerNetwork.Count; i++)
+            {
+                if (i < _proxyServerNetwork.Count)
+                    _proxyServerNetwork[i].ClearProxyClientListing(false);
+            }
         }
 
         /// <summary>
@@ -33,14 +38,11 @@ namespace Xenophyte_SeedNode_Proxy.Automation
         /// <returns></returns>
         public bool StopProxyServer()
         {
-            if (!_proxyServerOnlineNetwork.StopServer())
-                return false;
-
-            if (!_proxyServerRemoteNetwork.StopServer())
-                return false;
-
-            if (!_proxyServerTokenNetwork.StopServer())
-                return false;
+            for(int i = 0; i < _proxyServerNetwork.Count; i++)
+            {
+                if (i < _proxyServerNetwork.Count)
+                    _proxyServerNetwork[i].StopServer();
+            }
 
             return true;
         }
@@ -54,7 +56,17 @@ namespace Xenophyte_SeedNode_Proxy.Automation
         /// <returns></returns>
         public long GetTotalOnlineNetworkConnection(ProxyServerEnumStats enumStats)
         {
-            return _proxyServerOnlineNetwork.GetProxyClientCount(enumStats);
+            return _proxyServerNetwork[0].GetProxyClientCount(enumStats);
+        }
+
+        /// <summary>
+        /// Return the amount of connections opened from the Remote HTTP Network depending of the enumeration.
+        /// </summary> 
+        /// <param name="enumStats"></param>
+        /// <returns></returns>
+        public long GetTotalRemoteHttpNetworkConnection(ProxyServerEnumStats enumStats)
+        {
+            return _proxyServerNetwork[1].GetProxyClientCount(enumStats);
         }
 
         /// <summary>
@@ -64,7 +76,7 @@ namespace Xenophyte_SeedNode_Proxy.Automation
         /// <returns></returns>
         public long GetTotalRemoteNetworkConnection(ProxyServerEnumStats enumStats)
         {
-            return _proxyServerRemoteNetwork.GetProxyClientCount(enumStats);
+            return _proxyServerNetwork[2].GetProxyClientCount(enumStats);
         }
 
         /// <summary>
@@ -74,7 +86,7 @@ namespace Xenophyte_SeedNode_Proxy.Automation
         /// <returns></returns>
         public long GetTotalTokenNetworkConnection(ProxyServerEnumStats enumStats)
         {
-            return _proxyServerTokenNetwork.GetProxyClientCount(enumStats);
+            return _proxyServerNetwork[3].GetProxyClientCount(enumStats);
         }
 
         #endregion

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using Xenophyte_Connector_All.Setting;
 
 namespace Xenophyte_SeedNode_Proxy.Setting.Object
@@ -29,10 +30,10 @@ namespace Xenophyte_SeedNode_Proxy.Setting.Object
             ServerLogPath = serverLogPath;
             ServerLogIntervalCount = 10;
 
-            foreach(string seedNodeIp in ClassConnectorSetting.SeedNodeIp.Keys)
+            foreach(IPAddress seedNodeIp in ClassConnectorSetting.SeedNodeIp.Keys)
             {
-                if (seedNodeIp != serverIp)
-                    SeedNodeHostList.Add(seedNodeIp);
+                if (seedNodeIp.ToString() != serverIp)
+                    SeedNodeHostList.Add(seedNodeIp.ToString());
             }
         }
     }

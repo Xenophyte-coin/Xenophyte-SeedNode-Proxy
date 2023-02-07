@@ -72,7 +72,7 @@ namespace Xenophyte_SeedNode_Proxy.TCP.Server
 
                         try
                         {
-                            TcpClient tcpClient = await _serverListener.AcceptTcpClientAsync();
+                            Socket tcpClient = await _serverListener.AcceptSocketAsync();
 
                             LogEnum clientEnum = LogEnum.GENERAL;
                             LogEnum seedEnum = LogEnum.GENERAL;
@@ -99,36 +99,39 @@ namespace Xenophyte_SeedNode_Proxy.TCP.Server
                                     break;
                             }
 
-                            #region Initialize the proxy client or close it.
-
-                            ProxyClient proxyClient = new ProxyClient(
-                                tcpClient,
-                                _logSystem,
-                                _proxySetting,
-                                _serverPort,
-                                clientEnum,
-                                seedEnum,
-                                _cancellationTokenSource);
-
-                            clientIp = proxyClient.GetProxyClientIp();
-
-                            #endregion
-
-                            #region Insert the proxy client initialized or close it.
-
-                            if (!_listProxyClient.ContainsKey(clientIp))
+                            await Task.Factory.StartNew(async () =>
                             {
-                                if (!_listProxyClient.TryAdd(clientIp, new List<ProxyClient>()))
-                                    proxyClient.CloseProxyClient(false);
-                            }
+                                #region Initialize the proxy client or close it.
+
+                                ProxyClient proxyClient = new ProxyClient(
+                                    tcpClient,
+                                    _logSystem,
+                                    _proxySetting,
+                                    _serverPort,
+                                    clientEnum,
+                                    seedEnum,
+                                    _cancellationTokenSource);
+
+                                clientIp = proxyClient.GetProxyClientIp();
+
+                                #endregion
+
+                                #region Insert the proxy client initialized or close it.
+
+                                if (!_listProxyClient.ContainsKey(clientIp))
+                                {
+                                    if (!_listProxyClient.TryAdd(clientIp, new List<ProxyClient>()))
+                                        proxyClient.CloseProxyClient(false);
+                                }
 
 
-                            if (await proxyClient.HandleProxyClient())
-                                _listProxyClient[clientIp].Add(proxyClient);
+                                if (await proxyClient.HandleProxyClient())
+                                    _listProxyClient[clientIp].Add(proxyClient);
 
 
 
-                            #endregion
+                                #endregion
+                            }).ConfigureAwait(false);
                         }
 
                         catch (Exception error)
@@ -144,6 +147,9 @@ namespace Xenophyte_SeedNode_Proxy.TCP.Server
                 _logSystem.WriteLine("Failed to start the proxy server listener. Exception: " + error.Message, LogEnum.SERVER, ConsoleColor.Red);
                 return false;
             }
+
+            _logSystem.WriteLine("Successfully to start the proxy server listener at "+_proxySetting.ServerIp+":"+_serverPort, LogEnum.SERVER, ConsoleColor.Magenta);
+
 
             return true;
         }

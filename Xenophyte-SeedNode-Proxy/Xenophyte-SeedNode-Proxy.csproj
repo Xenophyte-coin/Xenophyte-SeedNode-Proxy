@@ -46,7 +46,7 @@
     <Reference Include="System.Xml" />
     <Reference Include="Xenophyte-Connector-All, Version=1.0.5.5, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Documents\Visual Studio 2019\Xenophyte-Project-V1\Xenophyte-Connector-All-main\Xenophyte-Connector-All\bin\Release\Xenophyte-Connector-All.dll</HintPath>
+      <HintPath>..\..\Xenophyte-Connector-All-main\Xenophyte-Connector-All\bin\Release\Xenophyte-Connector-All.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

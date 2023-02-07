@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Xenophyte_SeedNode_Proxy.Automation;
 using Xenophyte_SeedNode_Proxy.Log.Function;
@@ -11,9 +12,8 @@ namespace Xenophyte_SeedNode_Proxy
     {
         private static LogSystem _logSystem;
         private static ProxyFunction _proxyFunction;
-        private static ProxyServerListener _proxyServerOnlineListener;
-        private static ProxyServerListener _proxyServerRemoteListener;
-        private static ProxyServerListener _proxyServerTokenListener;
+        private static List<ProxyServerListener> _proxyServerListener;
+
         private static CommandLineSystem _commandLineSystem;
         private static CancellationTokenSource _cancellationSeedNodeProxyServer;
 
@@ -23,6 +23,7 @@ namespace Xenophyte_SeedNode_Proxy
 
 
             _proxyFunction = new ProxyFunction();
+            _proxyServerListener = new List<ProxyServerListener>();
             bool initProxy = _proxyFunction.LoadProxySetting() ? true : _proxyFunction.InitializeProxySetting();
 
             if (initProxy)
@@ -36,30 +37,22 @@ namespace Xenophyte_SeedNode_Proxy
 
                 #endregion
 
-                _proxyServerOnlineListener = new ProxyServerListener(_proxyFunction.ProxySetting, _proxyFunction.ProxySetting.ServerPort[0], _logSystem, _cancellationSeedNodeProxyServer);
-                if (!_proxyServerOnlineListener.StartServer())
+                foreach(int port in _proxyFunction.ProxySetting.ServerPort)
                 {
-                    Console.WriteLine("Failed to start the proxy server at port: " + _proxyFunction.ProxySetting.ServerPort[0] + ", please try again later.");
-                    return;
+                    _proxyServerListener.Add(new ProxyServerListener(_proxyFunction.ProxySetting, port,  _logSystem, _cancellationSeedNodeProxyServer));
+                    if (!_proxyServerListener[_proxyServerListener.Count-1].StartServer())
+                    {
+                        Console.WriteLine("Failed to start the proxy server at port: " + port + ", please try again later.");
+                        return;
+                    }
                 }
 
-                _proxyServerRemoteListener = new ProxyServerListener(_proxyFunction.ProxySetting, _proxyFunction.ProxySetting.ServerPort[1], _logSystem, _cancellationSeedNodeProxyServer);
-                if (!_proxyServerRemoteListener.StartServer())
-                {
-                    Console.WriteLine("Failed to start the proxy server: " + _proxyFunction.ProxySetting.ServerPort[1] + ", please try again later.");
-                    return;
-                }
+               
 
-                _proxyServerTokenListener = new ProxyServerListener(_proxyFunction.ProxySetting, _proxyFunction.ProxySetting.ServerPort[2], _logSystem, _cancellationSeedNodeProxyServer);
-                if (!_proxyServerTokenListener.StartServer())
-                {
-                    Console.WriteLine("Failed to start the proxy server: " + _proxyFunction.ProxySetting.ServerPort[2] + ", please try again later.");
-                    return;
-                }
-
+               
                 Console.WriteLine(AppDomain.CurrentDomain.FriendlyName + " started successfully.");
                 _commandLineSystem = new CommandLineSystem(
-                    new AutomationSystem(_proxyServerOnlineListener, _proxyServerRemoteListener, _proxyServerTokenListener),
+                    new AutomationSystem(_proxyServerListener),
                     _proxyFunction.ProxySetting,
                     _logSystem);
                 _commandLineSystem.StartCommandLineSystem();

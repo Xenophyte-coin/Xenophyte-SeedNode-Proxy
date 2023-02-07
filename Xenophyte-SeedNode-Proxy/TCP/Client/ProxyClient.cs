@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Xenophyte_Connector_All.Setting;
 using Xenophyte_Connector_All.Utils;
 using Xenophyte_SeedNode_Proxy.Log.Enum;
 using Xenophyte_SeedNode_Proxy.Log.Function;
@@ -35,8 +32,8 @@ namespace Xenophyte_SeedNode_Proxy.TCP.Client
         /// <summary>
         /// TCP Client, of client and of seed node host target.
         /// </summary>
-        private TcpClient _tcpProxyClient;
-        private TcpClient _tcpSeedNodeClient;
+        private Socket _tcpProxyClient;
+        private Socket _tcpSeedNodeClient;
         private int _seedNodePort;
 
         private LogSystem _logSystem;
@@ -57,7 +54,7 @@ namespace Xenophyte_SeedNode_Proxy.TCP.Client
         /// <param name="clientEnum"></param>
         /// <param name="seedEnum"></param>
         /// <param name="cancellation"></param>
-        public ProxyClient(TcpClient tcpClient, 
+        public ProxyClient(Socket tcpClient, 
                             LogSystem logSystem, 
                             ProxySetting proxySetting, 
                             int seedNodePort,
@@ -70,7 +67,6 @@ namespace Xenophyte_SeedNode_Proxy.TCP.Client
 
             // TCP.
             _tcpProxyClient = tcpClient;
-            _tcpSeedNodeClient = new TcpClient();
             _seedNodePort = seedNodePort;
 
             // Log.
@@ -96,7 +92,7 @@ namespace Xenophyte_SeedNode_Proxy.TCP.Client
         {
             try
             {
-                return (((IPEndPoint)_tcpProxyClient.Client.RemoteEndPoint).Address).ToString();
+                return (((IPEndPoint)_tcpProxyClient.RemoteEndPoint).Address).ToString();
             }
             catch
             {
@@ -136,6 +132,8 @@ namespace Xenophyte_SeedNode_Proxy.TCP.Client
                 }
 
                 SeedNodeHostTarget = seedNodeIp;
+
+                _tcpSeedNodeClient = new Socket(IPAddress.Parse(SeedNodeHostTarget).AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
                 await _tcpSeedNodeClient.ConnectAsync(SeedNodeHostTarget, _seedNodePort);
 
@@ -189,24 +187,18 @@ namespace Xenophyte_SeedNode_Proxy.TCP.Client
             {
                 Task.Factory.StartNew(async () =>
                 {
-                    bool clientIsDead = false;
-                    bool seedIsDead = false;
-
+                 
                     while (ProxyClientStatus)
                     {
-                        clientIsDead = ClassUtils.TcpClientIsConnected(_tcpProxyClient);
-
-                        seedIsDead = ClassUtils.TcpClientIsConnected(_tcpSeedNodeClient);
-
-                        if (!clientIsDead || 
-                            !seedIsDead)
+                        if (!ClassUtils.SocketIsConnected(_tcpProxyClient) || 
+                            !ClassUtils.SocketIsConnected(_tcpSeedNodeClient))
                             break;
 
                         await Task.Delay(1000);
                     }
 
 
-                    CloseProxyClient(clientIsDead ? true : false);
+                    CloseProxyClient(false);
 
                 }, _proxyClientTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Current).ConfigureAwait(false);
             }
@@ -222,30 +214,33 @@ namespace Xenophyte_SeedNode_Proxy.TCP.Client
         /// <param name="sourceClient"></param>
         /// <param name="destClient"></param>
         /// <returns></returns>
-        private async Task DoProxyingPacket(TcpClient sourceClient, TcpClient destClient, bool fromClient)
+        private async Task DoProxyingPacket(Socket sourceClient, Socket destClient, bool fromClient)
         {
             try
             {
                 byte[] packetData = new byte[8192];
 
-                using (NetworkStream networkStream = new NetworkStream(sourceClient.Client))
+                using (NetworkStream networkStream = new NetworkStream(sourceClient))
                 {
-                    while (ProxyClientStatus)
+                    int dataLength = 0;
+                    while ((dataLength = await networkStream.ReadAsync(packetData, 0, packetData.Length)) > 0)
                     {
-                        int dataLength = 0;
-                        while ((dataLength = await networkStream.ReadAsync(packetData, 0, packetData.Length)) > 0)
-                        {
 
-                            //packetData = packetData.SkipWhile(x => x != 0).ToArray();
+                        if (!ProxyClientStatus)
+                            break;
 
-                            _logSystem.WriteLine("Packet data received from "
-                                + (fromClient ? "Client: " + GetProxyClientIp() : "Server: " + SeedNodeHostTarget +":"+_seedNodePort) +
-                                " is " + Encoding.UTF8.GetString(packetData), fromClient ? _clientEnum : _seedEnum, ConsoleColor.Red, false);
+                        string packetDataCorrect = Encoding.UTF8.GetString(packetData).Replace("\0", "");
 
-                            if (!await SendPacketToTarget(destClient, packetData))
-                                break;
-                        }
+                        packetData = Encoding.UTF8.GetBytes(packetDataCorrect);
+
+                        _logSystem.WriteLine("Packet data received from "
+                            + (fromClient ? "Client: " + GetProxyClientIp() : "Server: " + SeedNodeHostTarget + ":" + _seedNodePort) +
+                            " is " + Encoding.UTF8.GetString(packetData), fromClient ? _clientEnum : _seedEnum, ConsoleColor.Red, false);
+
+                        if (!await SendPacketToTarget(destClient, packetData))
+                            break;
                     }
+
                 }
             }
             catch(Exception error)
@@ -260,18 +255,13 @@ namespace Xenophyte_SeedNode_Proxy.TCP.Client
         /// <param name="tcpClient"></param>
         /// <param name="packetData"></param>
         /// <returns></returns>
-        private async Task<bool> SendPacketToTarget(TcpClient tcpClient, byte[] packetData)
+        private async Task<bool> SendPacketToTarget(Socket tcpClient, byte[] packetData)
         {
             try
             {
-
-                byte[] dataCleaned = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(packetData).Replace("\0", ""));
-#if DEBUG
-                Debug.WriteLine("Packet data to send: " + Encoding.UTF8.GetString(packetData).Replace("\0", ""));
-#endif
-                using (NetworkStream networkStream = new NetworkStream(tcpClient.Client))
+                using (NetworkStream networkStream = new NetworkStream(tcpClient))
                 {
-                    await networkStream.WriteAsync(dataCleaned, 0, dataCleaned.Length, _proxyClientTokenSource.Token);
+                    await networkStream.WriteAsync(packetData, 0, packetData.Length, _proxyClientTokenSource.Token);
                     await networkStream.FlushAsync(_proxyClientTokenSource.Token);
                 }
             }

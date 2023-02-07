@@ -74,11 +74,19 @@ namespace Xenophyte_SeedNode_Proxy
                             break;
                         case CommandLineEnum.Stats:
                             {
+
                                 _logSystem.WriteLine("########## ONLINE MODE #########", LogEnum.GENERAL, ConsoleColor.Cyan);
                                 _logSystem.WriteLine("Count proxy client: " + _automationSystem.GetTotalOnlineNetworkConnection(ProxyServerEnumStats.COUNT_ALL), LogEnum.GENERAL, ConsoleColor.Magenta);
                                 _logSystem.WriteLine("Count proxy client alive: " + _automationSystem.GetTotalOnlineNetworkConnection(ProxyServerEnumStats.COUNT_ALIVE), LogEnum.GENERAL, ConsoleColor.Green);
                                 _logSystem.WriteLine("Count proxy client dead: " + _automationSystem.GetTotalOnlineNetworkConnection(ProxyServerEnumStats.COUNT_DEAD), LogEnum.GENERAL, ConsoleColor.Red);
                                 _logSystem.WriteLine("################################", LogEnum.GENERAL, ConsoleColor.Gray);
+
+                                _logSystem.WriteLine("########## REMOTE HTTP MODE #########", LogEnum.GENERAL, ConsoleColor.Cyan);
+                                _logSystem.WriteLine("Count proxy client: " + _automationSystem.GetTotalRemoteHttpNetworkConnection(ProxyServerEnumStats.COUNT_ALL), LogEnum.GENERAL, ConsoleColor.Magenta);
+                                _logSystem.WriteLine("Count proxy client alive: " + _automationSystem.GetTotalRemoteHttpNetworkConnection(ProxyServerEnumStats.COUNT_ALIVE), LogEnum.GENERAL, ConsoleColor.Green);
+                                _logSystem.WriteLine("Count proxy client dead: " + _automationSystem.GetTotalRemoteHttpNetworkConnection(ProxyServerEnumStats.COUNT_DEAD), LogEnum.GENERAL, ConsoleColor.Red);
+                                _logSystem.WriteLine("################################", LogEnum.GENERAL, ConsoleColor.Gray);
+
 
 
                                 _logSystem.WriteLine("########## REMOTE MODE #########", LogEnum.GENERAL, ConsoleColor.Cyan);
